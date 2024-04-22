@@ -29,7 +29,7 @@ type AuthService struct {
 
 type tokenClaims struct {
 	jwt.RegisteredClaims
-	guid string //`json:"guid"`
+	Guid string `json:"guid"`
 }
 
 func NewAuthService(repo repos.Auth) *AuthService {
@@ -61,12 +61,12 @@ func (a *AuthService) CreateTokens(ctx context.Context, guid string) (string, st
 func (a *AuthService) newAccessToken(guid string, ttl time.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, tokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer: "lev_osipov@auth_service",
+			Issuer:    "lev_osipov@auth_service",
 			//ID:        guid,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.accessTokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		guid: guid,
+		Guid: guid,
 	})
 
 	return token.SignedString([]byte(signingKey))
@@ -159,7 +159,8 @@ func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64Refr
 	//тоже самое для /
 	normalToken1 := strings.ReplaceAll(base64RefreshToken, "%3D", "=")
 	normalToken2 := strings.ReplaceAll(normalToken1, "%2F", "/")
-	refreshTokenBytes, err := base64.StdEncoding.DecodeString(normalToken2)
+	normalToken3 := strings.ReplaceAll(normalToken2, "%2B", "+")
+	refreshTokenBytes, err := base64.StdEncoding.DecodeString(normalToken3)
 
 	if err != nil {
 		return "", "", errors.New("error while decode refresh token from base64")
@@ -173,6 +174,7 @@ func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64Refr
 	fmt.Println("ura pobeda slinkovani norm")
 
 	//4.
+	fmt.Printf("guid is: %s\n", guid)
 	sessions, err := a.repo.FindSessionsByGUID(ctx, guid)
 	if err != nil {
 		return "", "", err
@@ -181,7 +183,6 @@ func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64Refr
 		fmt.Printf("sessions not found\n")
 		return "", "", errors.New("no sessions - need to auth")
 	}
-	 
 
 	//8.
 	newAccessToken, newRefreshToken, err := a.CreateTokens(ctx, guid)
@@ -208,5 +209,5 @@ func (a *AuthService) Parsetoken(accessToken string) (string, error) { //вер�
 		return "", errors.New("token claims are not of type *tokenClaims")
 	}
 
-	return claims.guid, nil
+	return claims.Guid, nil
 } //norm
