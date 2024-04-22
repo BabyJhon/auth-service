@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -15,15 +16,13 @@ import (
 )
 
 const (
-	signingKey = "something_env_secret_key" //TODO: вынести в переменные окружеия
-	bcryptCost = 10
+	bcryptCost      = 10
+	accessTokenTTL  = 15 * time.Minute
+	refreshTokenTTL = 48 * time.Hour
 )
 
 type AuthService struct {
 	repo repos.Auth
-
-	accessTokenTTL  time.Duration
-	refreshTokenTTL time.Duration
 }
 
 type tokenClaims struct {
@@ -33,14 +32,12 @@ type tokenClaims struct {
 
 func NewAuthService(repo repos.Auth) *AuthService {
 	return &AuthService{
-		repo:            repo,
-		accessTokenTTL:  15 * time.Minute,
-		refreshTokenTTL: 48 * time.Hour,
+		repo: repo,
 	}
 }
 
 func (a *AuthService) CreateTokens(ctx context.Context, guid string) (string, string, error) { //acess, refresh, err
-	accessToken, err := a.newAccessToken(guid, a.accessTokenTTL)
+	accessToken, err := a.newAccessToken(guid, accessTokenTTL)
 	if err != nil {
 		return "", "", err
 	}
@@ -62,13 +59,13 @@ func (a *AuthService) newAccessToken(guid string, ttl time.Duration) (string, er
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer: "lev_osipov@auth_service",
 			//ID:        guid,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.accessTokenTTL)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(accessTokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 		Guid: guid,
 	})
 
-	return token.SignedString([]byte(signingKey))
+	return token.SignedString([]byte(os.Getenv("SIGNING_KEY")))
 }
 
 func (a *AuthService) newRefreshToken(ctx context.Context, guid, linkPart string) (string, error) {
@@ -87,7 +84,7 @@ func (a *AuthService) newRefreshToken(ctx context.Context, guid, linkPart string
 	var session entity.Session = entity.Session{
 		GUID:             guid,
 		RefreshTokenHash: tokenHash,
-		ExpiresAt:        time.Now().Add(a.refreshTokenTTL), //время когда истекает токен
+		ExpiresAt:        time.Now().Add(refreshTokenTTL), //время когда истекает токен
 	}
 
 	err = a.repo.AddSession(ctx, session)
@@ -203,7 +200,7 @@ func (a *AuthService) Parsetoken(accessToken string) (string, error) { //вер�
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")
 		}
-		return []byte(signingKey), nil
+		return []byte(os.Getenv("SIGNING_KEY")), nil
 	})
 	if err != nil {
 		return "", nil

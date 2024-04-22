@@ -12,6 +12,7 @@ import (
 	"github.com/BabyJhon/auth-service/internal/service"
 	mongodbgo "github.com/BabyJhon/auth-service/pkg/db/mongodb.go"
 	"github.com/BabyJhon/auth-service/pkg/httpserver"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,9 +21,9 @@ func Run() {
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 
 	//.env
-	// if err := godotenv.Load(); err != nil {
-	// 	logrus.Fatalf("error loading env vars: %s", err.Error())
-	// }
+	if err := godotenv.Load(); err != nil {
+		logrus.Fatalf("error loading env vars: %s", err.Error())
+	}
 
 	//DB
 	client, err := mongodbgo.NewMongoDB(context.Background())
@@ -48,7 +49,7 @@ func Run() {
 	srv := new(httpserver.Server)
 
 	go func() {
-		if err := srv.Run("8000", handlers.InitRoutes()); err != http.ErrServerClosed {
+		if err := srv.Run(os.Getenv("SERVER_PORT"), handlers.InitRoutes()); err != http.ErrServerClosed {
 			logrus.Fatalf("error occured while running server: %s", err.Error())
 		}
 	}()
