@@ -7,7 +7,6 @@ import (
 )
 
 type Auth interface {
-	//auth methods
 	RefreshTokens(ctx context.Context, accessToken, base64RefreshToken string) (string, string, error)
 	CreateTokens(ctx context.Context, guid string) (string, string, error)
 }

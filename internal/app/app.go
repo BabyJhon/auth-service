@@ -19,11 +19,6 @@ func Run() {
 	//logrus
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 
-	//Configs
-	// if err := config.InitConfig(); err != nil {
-	// 	logrus.Fatalf("error initialization configs: %s", err.Error())
-	// }
-
 	//.env
 	// if err := godotenv.Load(); err != nil {
 	// 	logrus.Fatalf("error loading env vars: %s", err.Error())
@@ -50,7 +45,6 @@ func Run() {
 	handlers := handlers.NewHandler(services)
 
 	//HTTP server
-
 	srv := new(httpserver.Server)
 
 	go func() {
@@ -70,9 +64,5 @@ func Run() {
 	if err := srv.ShutDown(context.Background()); err != nil {
 		logrus.Errorf("error while server shutting down: %s", err.Error())
 	}
-
-}
-
-func Prikol() {
 
 }

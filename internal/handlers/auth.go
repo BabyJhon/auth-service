@@ -40,44 +40,12 @@ func (h *Handler) recieve(c *gin.Context) {
 	)
 }
 
-func (h *Handler) zalupa(c *gin.Context) {
-	// refreshCookie, err := c.Request.Cookie("refresh_token")
-	// if err != nil {
-	// 	newErrorResponse(c, http.StatusUnauthorized, err.Error())
-	// }
-
-	// value := refreshCookie.Value
-	// fmt.Printf("refresh token from cookie value is: %s\n", value)
-
-	// replaceString := strings.ReplaceAll(value, "%3D", "=")
-	// //замена части строки
-	// fmt.Printf("norm string is: %s\n", replaceString)
-	c.SetCookie(
-		"3d",
-		"=",
-		12341000, //через сколько кука станет недействительой в секундах
-		"/",      //path
-		"",       //domain
-		true,     //secure
-		true,     //httponly
-	)
-	c.SetCookie(
-		"2f",
-		"/",
-		12341000, //через сколько кука станет недействительой в секундах
-		"/",      //path
-		"",       //domain
-		true,     //secure
-		true,     //httponly
-	)
-}
-
 func (h *Handler) refresh(c *gin.Context) {
 	refreshCookie, err := c.Request.Cookie("refresh_token")
 	if err != nil {
 		newErrorResponse(c, http.StatusUnauthorized, err.Error())
 	}
-	refreshTokenHash := refreshCookie.Value
+	base64RefreshToken := refreshCookie.Value
 
 	accessCookie, err := c.Request.Cookie("access_token")
 	if err != nil {
@@ -86,7 +54,7 @@ func (h *Handler) refresh(c *gin.Context) {
 	accessToken := accessCookie.Value
 
 	//generate new tokens
-	accessToken, refreshToken, err := h.services.RefreshTokens(context.Background(), accessToken, refreshTokenHash)
+	accessToken, refreshToken, err := h.services.RefreshTokens(context.Background(), accessToken, base64RefreshToken)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 	}

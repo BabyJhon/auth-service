@@ -2,7 +2,6 @@ package repos
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/BabyJhon/auth-service/internal/entity"
 	"go.mongodb.org/mongo-driver/bson"
@@ -10,7 +9,6 @@ import (
 )
 
 type AuthRepo struct {
-	//TODO: add mongo db
 	mongoCollection *mongo.Collection
 }
 
@@ -39,10 +37,13 @@ func (a *AuthRepo) FindSessionsByGUID(ctx context.Context, guid string) ([]entit
 	if err = cursor.All(ctx, &res); err != nil {
 		return nil, err
 	}
-	//для проверкт работы
-	fmt.Printf("repos: res len is: %d\n", len(res))
-	for i := 0; i < len(res); i++ {
-		fmt.Println(res[i].GUID)
-	}
 	return res, nil
+}
+
+func (a *AuthRepo) DeleteSession(ctx context.Context, session entity.Session) error {
+	_, err := a.mongoCollection.DeleteOne(ctx, bson.M{"refresh_token_hash": session.RefreshTokenHash})
+	if err != nil {
+		return err
+	}
+	return nil
 }

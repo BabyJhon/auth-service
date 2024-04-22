@@ -10,6 +10,7 @@ import (
 type Auth interface {
 	AddSession(ctx context.Context, session entity.Session) error
 	FindSessionsByGUID(ctx context.Context, guid string) ([]entity.Session, error)
+	DeleteSession(ctx context.Context, session entity.Session) error 
 }
 
 type Repository struct {

@@ -20,7 +20,6 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		api.POST("/recieve", h.recieve)
 		api.POST("/refresh", h.refresh)
-		api.POST("/zalupa", h.zalupa)
 	}
 
 	return router

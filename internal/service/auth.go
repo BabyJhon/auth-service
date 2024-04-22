@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -61,7 +60,7 @@ func (a *AuthService) CreateTokens(ctx context.Context, guid string) (string, st
 func (a *AuthService) newAccessToken(guid string, ttl time.Duration) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, tokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "lev_osipov@auth_service",
+			Issuer: "lev_osipov@auth_service",
 			//ID:        guid,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.accessTokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -70,7 +69,7 @@ func (a *AuthService) newAccessToken(guid string, ttl time.Duration) (string, er
 	})
 
 	return token.SignedString([]byte(signingKey))
-} //norm
+}
 
 func (a *AuthService) newRefreshToken(ctx context.Context, guid, linkPart string) (string, error) {
 	//создание рандомного refresh token, тип- строка
@@ -108,7 +107,7 @@ func (a *AuthService) bcryptEncodeRefreshToken(token []byte) (string, error) {
 		return "", err
 	}
 	return string(tokenHash), nil
-} //norm
+}
 
 func (a *AuthService) generateRefreshToken(linkPart string) ([]byte, error) {
 	token := make([]byte, 32)
@@ -125,17 +124,14 @@ func (a *AuthService) generateRefreshToken(linkPart string) ([]byte, error) {
 	}
 
 	return token, nil
-} //norm
+}
 
-// вторая ручка
 func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64RefreshToken string) (string, string, error) {
-
 	/*
-		запрос пост - получаем из куки jwt access токен и закодированный в base64 рефреш токен
 		1.парсим access токен
-		2.декодируем из base64 рефреш токен
+		2.декодируем из base64 refresh токен
 		3.сравниваем последние 5 символов
-		если ок то
+		если равны, то
 
 		4.по guid находим в базе сессии с хэшами рефреш токенов
 		5.bcrypt.CompareHashAndPassword на рефреш токен и хэши сессий этого пользователя
@@ -143,20 +139,18 @@ func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64Refr
 		если нет то
 		7.старый рефреш удаляем из базы
 
-		8.генерируем новый аксесс и рефреш токены
+		8.генерируем новый access и refresh токены
 	*/
 
-	//1.парсим access токен и получаем guid
+	//1.
 	guid, err := a.Parsetoken(accessToken)
 	if err != nil {
 		return "", "", errors.New("error while parsing access token")
 	}
 
-	//2.декодируем рефреш токен из base64
-
-	//base64RefreshToken - токен полученный из кук, в нем знаки = (полученый при кодировании рандомной строки и записи в куку)
-	//заменены на %3D - их нужо заменить на = чтобы нормально раскодировать
-	//тоже самое для /
+	//2.
+	//TODO: решить это
+	//cookie для синтаксиса используют служебные символы, которые при передаче записываются в виде unicode сигнатуры
 	normalToken1 := strings.ReplaceAll(base64RefreshToken, "%3D", "=")
 	normalToken2 := strings.ReplaceAll(normalToken1, "%2F", "/")
 	normalToken3 := strings.ReplaceAll(normalToken2, "%2B", "+")
@@ -170,24 +164,35 @@ func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64Refr
 	//3.сравнение последних символов токенов
 	if strings.Compare(refreshToken[len(refreshToken)-5:], accessToken[len(accessToken)-5:]) != 0 {
 		return "", "", errors.New("access and refresh tokens are not linked")
-	} //иначе последние символы access и рефреш токенов совпадают и значит они слинкованы
-	fmt.Println("ura pobeda slinkovani norm")
+	} //иначе последние символы access и рефреш токенов совпадают и значит они связаны
 
 	//4.
-	fmt.Printf("guid is: %s\n", guid)
 	sessions, err := a.repo.FindSessionsByGUID(ctx, guid)
 	if err != nil {
 		return "", "", err
 	}
 	if len(sessions) == 0 {
-		fmt.Printf("sessions not found\n")
 		return "", "", errors.New("no sessions - need to auth")
+	}
+
+	//5.сверяем, могут ли быть хэши из базы получены от refresh токена
+	for i := 0; i < len(sessions); i++ {
+		if err := bcrypt.CompareHashAndPassword([]byte(sessions[i].RefreshTokenHash), refreshTokenBytes); err == nil {
+			//6.сверяем истек ли токен
+			if time.Now().Before(sessions[i].ExpiresAt) { //еще можно использовать
+				//7.удаляем сессия с этим токеном из базы
+				a.repo.DeleteSession(ctx, sessions[i])
+				break
+			} else {
+				return "", "", errors.New("refresh token is expire")
+			}
+		}
 	}
 
 	//8.
 	newAccessToken, newRefreshToken, err := a.CreateTokens(ctx, guid)
 	if err != nil {
-		return "", "", err
+		return newAccessToken, newRefreshToken, err
 	}
 
 	return newAccessToken, newRefreshToken, nil
@@ -210,4 +215,4 @@ func (a *AuthService) Parsetoken(accessToken string) (string, error) { //вер�
 	}
 
 	return claims.Guid, nil
-} //norm
+}
