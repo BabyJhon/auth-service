@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  auth-service:
+    container_name: auth-service
+    # ищет докер-файл на основании которого соберет изображение для запуска контейнера  
+    build: ./
+    command: ./bin
+    ports:
+      - 8000:8000
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8000
+      - SIGNING_KEY="something_secret_key"
+    restart: unless-stopped
+  db:
+    restart: unless-stopped
+    image: mongo
+    #environment:
+      #- POSTGRES_PASSWORD=qwerty123456
+    ports:
+      - 27017:27017
+    healthcheck:
+      test: "exit 0"

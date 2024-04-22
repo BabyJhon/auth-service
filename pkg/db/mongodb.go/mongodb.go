@@ -17,7 +17,7 @@ type Config struct {
 }
 
 func NewMongoDB(ctx context.Context) (*mongo.Client, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://127.0.0.1:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://db:27017")) //"mongodb://127.0.0.1:27017" - при запуске монги отдельно и go run ./cmd
 
 	if err != nil {
 		return nil, err
