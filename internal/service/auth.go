@@ -177,10 +177,11 @@ func (a *AuthService) RefreshTokens(ctx context.Context, accessToken, base64Refr
 		if err := bcrypt.CompareHashAndPassword([]byte(sessions[i].RefreshTokenHash), refreshTokenBytes); err == nil {
 			//6.сверяем истек ли токен
 			if time.Now().Before(sessions[i].ExpiresAt) { //еще можно использовать
-				//7.удаляем сессия с этим токеном из базы
+				//7.удаляем сессию с этим токеном из базы
 				a.repo.DeleteSession(ctx, sessions[i])
 				break
-			} else {
+			} else { //если токен просрочен, то он удаляется из бд и необходима recieve операция
+				a.repo.DeleteSession(ctx, sessions[i])
 				return "", "", errors.New("refresh token is expire")
 			}
 		}
