@@ -11,3 +11,29 @@
 - Go
 - JWT
 - MongoDB
+
+## Для локального запуска
+
+Склонировать репозиторий
+
+```bash
+  git clone https://github.com/BabyJhon/auth-service
+```
+
+Перейти в директорию
+
+```bash
+  cd auth-service
+```
+
+Установить зависимости
+
+```bash
+  go mod download
+```
+
+Запустить
+
+```bash
+  docker compose up
+```
